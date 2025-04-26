@@ -2,7 +2,12 @@ import { OpenAI } from 'openai';
 import axios from 'axios';
 
 const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY
+  baseURL: "https://openrouter.ai/api/v1", // ← IMPORTANT
+  apiKey: process.env.OPENROUTER_API_KEY,
+  defaultHeaders: {
+    "HTTP-Referer": "https://neutrino-vercel.vercel.app/", // ← optional but recommended
+    "X-Title": "neutrino", // ← optional: name your app
+  }
 });
 
 export default async function handler(req, res) {
@@ -16,7 +21,7 @@ export default async function handler(req, res) {
     const articleText = extractText(response.data);
 
     const aiResponse = await openai.chat.completions.create({
-      model: "gpt-3.5-turbo",
+      model: "openai/gpt-3.5-turbo", // Or try "mistralai/mixtral-8x7b"
       messages: [
         {
           role: "system",
@@ -32,7 +37,7 @@ export default async function handler(req, res) {
     const debiasedText = aiResponse.choices[0].message.content;
     res.status(200).json({ original: articleText, debiased: debiasedText });
   } catch (error) {
-  console.error("Error details:", error); // ← Add this
+  console.error("Error details:", error); 
   res.status(500).json({ error: "Error processing request" });
   }
 }
