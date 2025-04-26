@@ -32,8 +32,8 @@ export default async function handler(req, res) {
     const debiasedText = aiResponse.choices[0].message.content;
     res.status(200).json({ original: articleText, debiased: debiasedText });
   } catch (error) {
-    console.error(error);
-    res.status(500).json({ error: "Error processing request" });
+  console.error("Error details:", error); // ← Add this
+  res.status(500).json({ error: "Error processing request" });
   }
 }
 
