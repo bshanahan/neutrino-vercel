@@ -21,7 +21,7 @@ export default async function handler(req, res) {
     const articleText = extractText(response.data);
 
     const aiResponse = await openai.chat.completions.create({
-      model: "mistralai/mixtral-8x7b", // "openai/gpt-3.5-turbo", // Or try "mistralai/mixtral-8x7b"
+      model: "mistralai/mixtral-8x7b-instruct", // "openai/gpt-3.5-turbo", // Or try "mistralai/mixtral-8x7b"
       messages: [
         {
           role: "system",
