@@ -82,8 +82,17 @@ Do NOT add any other text, introductions, or commentary.
         },
       ],
     });
+      
+    let rawOutput = completion.choices[0].message.content.trim();
 
-    const rawOutput = completion.choices[0].message.content;
+    // Remove Markdown code fences if present (Gemini)
+    if (rawOutput.startsWith("```")) {
+	rawOutput = rawOutput
+	    .replace(/^```(?:json)?/i, "")
+	    .replace(/```$/, "")
+	    .trim();
+    }
+    // const rawOutput = completion.choices[0].message.content;
 
     // Attempt to parse JSON
     let parsed;
