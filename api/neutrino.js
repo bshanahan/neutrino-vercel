@@ -1,42 +1,71 @@
-import { OpenAI } from 'openai';
-import axios from 'axios';
+import OpenAI from "openai";
+import cheerio from "cheerio";
 
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY
+const client = new OpenAI({
+  apiKey: process.env.OPENROUTER_API_KEY,
+  baseURL: "https://openrouter.ai/api/v1",
 });
 
 export default async function handler(req, res) {
   try {
-    const url = req.query.url;
-    if (!url) {
-      return res.status(400).json({ error: "URL is required" });
+    const targetUrl = req.query.url;
+
+    if (!targetUrl) {
+      return res.status(400).json({ error: "Missing ?url parameter" });
     }
 
-    const response = await axios.get(url);
-    const articleText = extractText(response.data);
+    // Fetch page
+    const response = await fetch(targetUrl, {
+      headers: {
+        "User-Agent": "NeutrinoBot/1.0",
+      },
+    });
 
-    const aiResponse = await openai.chat.completions.create({
-      model: "gpt-4",
+    if (!response.ok) {
+      return res
+        .status(400)
+        .json({ error: "Failed to fetch target URL" });
+    }
+
+    const html = await response.text();
+
+    // Parse & clean HTML
+    const $ = cheerio.load(html);
+
+    $("script, style, nav, footer, header, iframe, noscript").remove();
+
+    let text = $("body")
+      .text()
+      .replace(/\s+/g, " ")
+      .trim();
+
+    // Hard limit to stay under token cap
+    const MAX_CHARS = 12000;
+    if (text.length > MAX_CHARS) {
+      text = text.slice(0, MAX_CHARS);
+    }
+
+    // Call model
+    const completion = await client.chat.completions.create({
+      model: "anthropic/claude-3-haiku",
       messages: [
         {
           role: "system",
-          content: "You are an expert at rewriting text to remove bias while keeping accuracy."
+          content:
+            "Rewrite the following text to remove bias, loaded language, and emotional framing. Preserve factual content and original meaning. Do not add new facts.",
         },
         {
           role: "user",
-          content: `Please rewrite the following text to remove bias while maintaining neutrality:\n\n${articleText}`
-        }
-      ]
+          content: text,
+        },
+      ],
     });
 
-    const debiasedText = aiResponse.choices[0].message.content;
-    res.status(200).json({ original: articleText, debiased: debiasedText });
+    const output = completion.choices[0].message.content;
+
+    res.status(200).json({ cleaned: output });
   } catch (error) {
-    console.error(error);
+    console.error("Neutrino error:", error);
     res.status(500).json({ error: "Error processing request" });
   }
-}
-
-function extractText(html) {
-  return html.replace(/<[^>]*>/g, '').replace(/\s+/g, ' ').trim();
 }
