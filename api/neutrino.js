@@ -80,10 +80,8 @@ export default async function handler(req, res) {
   } catch {
     // fallback: wrap as simple JSON
     parsed = { cleaned_text: raw, summary_of_changes: [] };
+    res.status(200).json(parsed);
+  } catch (error) {
+      console.error(error);
+      res.status(500).json({ error: error.message });
   }
-
-  res.status(200).json(parsed);
-} catch (error) {
-  console.error(error);
-  res.status(500).json({ error: error.message });
-}
