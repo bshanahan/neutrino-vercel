@@ -60,17 +60,11 @@ export default async function handler(req, res) {
       model: "anthropic/claude-3-haiku",
       messages: [
         {
-          role: "system",
-	    content: "
-            You rewrite text to remove bias, loaded language, and emotional framing.
+            role: "system",
+	    content:
 
-            Rules:
-              - Output ONLY the rewritten text.
-              - Do NOT add introductions, explanations, or commentary.
-              - Preserve factual meaning.
-              - Use neutral, journalistic tone.
-              ",
-        },
+            "Rewrite the following text to remove bias, loaded language, and emotional framing. Preserve factual content and original meaning. Do not add new facts.",
+	},
         {
           role: "user",
           content: text,
