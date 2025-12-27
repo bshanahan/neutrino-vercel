@@ -69,7 +69,7 @@ Return ONLY valid JSON with two fields:
 }
 
 - cleaned_text: the neutral rewritten text
-- summary_of_changes: 3–5 bullet points describing what types of bias or loaded language were removed
+- summary_of_changes: Bullet points describing what types of bias or loaded language were removed. Be specific about what you changed.
 
 Do NOT add any other text, introductions, or commentary.
           `.trim(),
