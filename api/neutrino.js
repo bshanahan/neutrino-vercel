@@ -1,5 +1,5 @@
 import OpenAI from "openai";
-import cheerio from "cheerio";
+import * as cheerio from "cheerio";
 
 const client = new OpenAI({
   apiKey: process.env.OPENROUTER_API_KEY,
