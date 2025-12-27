@@ -62,7 +62,7 @@ export default async function handler(req, res) {
         {
           role: "system",
           content:
-            "Rewrite the following text to remove bias, loaded language, and emotional framing. Preserve factual content and original meaning. Do not add new facts.",
+            "Rewrite the following text to remove bias, loaded language, and emotional framing. Preserve factual content and original meaning. Do not add new facts. Output only the rewritten text. Do not add introductions, explanations, or commentary.",
         },
         {
           role: "user",
