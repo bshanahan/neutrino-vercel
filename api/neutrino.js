@@ -8,7 +8,7 @@ const client = new OpenAI({
 
 export default async function handler(req, res) {
   // Allow requests from anywhere (for testing)
-  res.setHeader("Access-Control-Allow-Origin", "*");
+  res.setHeader("Access-Control-Allow-Origin", "https://bshanahan.github.io");
   res.setHeader("Access-Control-Allow-Methods", "GET,POST,OPTIONS");
   res.setHeader("Access-Control-Allow-Headers", "Content-Type");
 
@@ -69,7 +69,7 @@ export default async function handler(req, res) {
               - Do NOT add introductions, explanations, or commentary.
               - Preserve factual meaning.
               - Use neutral, journalistic tone.
-              `.trim()
+              `.trim(),
         },
         {
           role: "user",
