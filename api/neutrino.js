@@ -61,8 +61,15 @@ export default async function handler(req, res) {
       messages: [
         {
           role: "system",
-          content:
-            "Rewrite the following text to remove bias, loaded language, and emotional framing. Preserve factual content and original meaning. Do not add new facts.",
+	    content: `
+            You rewrite text to remove bias, loaded language, and emotional framing.
+
+            Rules:
+              - Output ONLY the rewritten text.
+              - Do NOT add introductions, explanations, or commentary.
+              - Preserve factual meaning.
+              - Use neutral, journalistic tone.
+              `.trim()
         },
         {
           role: "user",
@@ -71,11 +78,18 @@ export default async function handler(req, res) {
       ],
     });
 
-    const output = completion.choices[0].message.content;
+  const raw = completion.choices[0].message.content;
 
-    res.status(200).json({ cleaned: output });
-  } catch (error) {
-    console.error("Neutrino error:", error);
-    res.status(500).json({ error: "Error processing request" });
+  let parsed;
+  try {
+    parsed = JSON.parse(raw);
+  } catch {
+    // fallback: wrap as simple JSON
+    parsed = { cleaned_text: raw, summary_of_changes: [] };
   }
+
+  res.status(200).json(parsed);
+} catch (error) {
+  console.error(error);
+  res.status(500).json({ error: error.message });
 }
