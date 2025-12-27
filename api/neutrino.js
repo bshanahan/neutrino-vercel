@@ -7,6 +7,16 @@ const client = new OpenAI({
 });
 
 export default async function handler(req, res) {
+  // Allow requests from anywhere (for testing)
+  res.setHeader("Access-Control-Allow-Origin", "*");
+  res.setHeader("Access-Control-Allow-Methods", "GET,POST,OPTIONS");
+  res.setHeader("Access-Control-Allow-Headers", "Content-Type");
+
+  // Handle preflight OPTIONS request
+  if (req.method === "OPTIONS") {
+    return res.status(200).end();
+  }
+
   try {
     const targetUrl = req.query.url;
 
