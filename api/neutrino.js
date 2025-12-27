@@ -54,7 +54,7 @@ export default async function handler(req, res) {
 
     // Call model with updated prompt including explanation
     const completion = await client.chat.completions.create({
-      model: "anthropic/claude-3-haiku",
+      model: "openai/gpt-4o-mini",
       messages: [
         {
           role: "system",
