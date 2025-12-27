@@ -7,7 +7,7 @@ const client = new OpenAI({
 });
 
 export default async function handler(req, res) {
-  // Allow requests from anywhere (for testing)
+  // Allow requests from your GitHub Pages site
   res.setHeader("Access-Control-Allow-Origin", "https://bshanahan.github.io");
   res.setHeader("Access-Control-Allow-Methods", "GET,POST,OPTIONS");
   res.setHeader("Access-Control-Allow-Headers", "Content-Type");
@@ -32,16 +32,13 @@ export default async function handler(req, res) {
     });
 
     if (!response.ok) {
-      return res
-        .status(400)
-        .json({ error: "Failed to fetch target URL" });
+      return res.status(400).json({ error: "Failed to fetch target URL" });
     }
 
     const html = await response.text();
 
     // Parse & clean HTML
     const $ = cheerio.load(html);
-
     $("script, style, nav, footer, header, iframe, noscript").remove();
 
     let text = $("body")
@@ -55,14 +52,27 @@ export default async function handler(req, res) {
       text = text.slice(0, MAX_CHARS);
     }
 
-    // Call model
+    // Call model with updated prompt including explanation
     const completion = await client.chat.completions.create({
       model: "anthropic/claude-3-haiku",
       messages: [
         {
           role: "system",
-          content:
-            "Rewrite the following text to remove bias, loaded language, and emotional framing. Preserve factual content and original meaning. Do not add new facts. Output only the rewritten text. Do not add introductions, explanations, or commentary.",
+          content: `
+Rewrite the following text to remove bias, loaded language, and emotional framing.
+Preserve factual content and original meaning. Do not add new facts.
+
+Return ONLY valid JSON with two fields:
+{
+  "cleaned_text": "...",
+  "summary_of_changes": ["...", "..."]
+}
+
+- cleaned_text: the neutral rewritten text
+- summary_of_changes: 3–5 bullet points describing what types of bias or loaded language were removed
+
+Do NOT add any other text, introductions, or commentary.
+          `.trim(),
         },
         {
           role: "user",
@@ -71,9 +81,18 @@ export default async function handler(req, res) {
       ],
     });
 
-    const output = completion.choices[0].message.content;
+    const rawOutput = completion.choices[0].message.content;
 
-    res.status(200).json({ cleaned: output });
+    // Attempt to parse JSON
+    let parsed;
+    try {
+      parsed = JSON.parse(rawOutput);
+    } catch {
+      // fallback: wrap the text if model didn't produce perfect JSON
+      parsed = { cleaned_text: rawOutput, summary_of_changes: [] };
+    }
+
+    res.status(200).json(parsed);
   } catch (error) {
     console.error("Neutrino error:", error);
     res.status(500).json({ error: "Error processing request" });
