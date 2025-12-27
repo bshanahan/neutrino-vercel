@@ -52,9 +52,11 @@ export default async function handler(req, res) {
       text = text.slice(0, MAX_CHARS);
     }
 
+    const model = req.query.model || "openai/gpt-4o-mini"; // default
+      
     // Call model with updated prompt including explanation
     const completion = await client.chat.completions.create({
-      model: "openai/gpt-4o-mini",
+      model: model,
       messages: [
         {
           role: "system",
