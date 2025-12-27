@@ -61,7 +61,7 @@ export default async function handler(req, res) {
       messages: [
         {
           role: "system",
-	    content: `
+	    content: "
             You rewrite text to remove bias, loaded language, and emotional framing.
 
             Rules:
@@ -69,7 +69,7 @@ export default async function handler(req, res) {
               - Do NOT add introductions, explanations, or commentary.
               - Preserve factual meaning.
               - Use neutral, journalistic tone.
-              `.trim(),
+              ",
         },
         {
           role: "user",
