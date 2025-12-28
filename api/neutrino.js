@@ -63,8 +63,9 @@ Rules:
 - Do NOT speculate or infer causation.
 - Output MUST be valid JSON.
 - Do NOT wrap output in markdown or code blocks.
+- Well-established, widely reported historical events (e.g. major attacks, elections, wars) should be treated as verifiable unless there is credible dispute.
 
-Output format:
+Output format (JSON):
 {
   "cleaned_text": "...",
   "summary_of_changes": ["...", "..."],
@@ -76,6 +77,8 @@ Notes:
 - extracted_claims should list only factual, checkable statements.
 - fact_check_summary should correspond to the extracted claims.
 - If no factual claims are present, say so explicitly.
+- Do not downgrade confidence merely because the input text does not provide sources.
+
           `.trim(),
         },
         {
@@ -94,6 +97,12 @@ Notes:
         .replace(/```$/, "")
         .trim();
     }
+
+
+    // Attempt to repair unescaped quotes inside JSON strings (Claude quirk)
+      rawOutput = rawOutput.replace(/"([^"]*?)"([^"]*?)"/g, (match) => {
+	  return match.replace(/"/g, '\\"');
+      });
 
     let parsed;
     try {
