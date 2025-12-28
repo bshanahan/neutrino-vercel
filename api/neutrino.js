@@ -60,29 +60,31 @@ export default async function handler(req, res) {
       messages: [
         {
           role: "system",
-          content: `
-Rewrite the following text to remove bias, loaded language, and emotional framing.
-Preserve factual content and original meaning. Do not add new facts.
+          content: `You are a neutral editor and fact-checking assistant.
 
-Provide a high-level fact-check summary based on widely accepted public knowledge.
+Tasks:
+1. Rewrite the input text to remove bias, loaded language, and emotional framing.
+2. Preserve factual content and original meaning.
+3. Do not add new facts.
+4. Provide a brief explanation of the changes made.
+5. Provide a high-level fact-check summary based on widely accepted public knowledge.
 
 Rules:
+- Do NOT browse the web.
 - If a claim cannot be verified, say so explicitly.
 - Do NOT speculate.
+- Output MUST be valid JSON.
+- Do NOT wrap output in markdown or code blocks.
 
-Return ONLY valid JSON with two fields:
+Output format:
 {
   "cleaned_text": "...",
   "summary_of_changes": ["...", "..."],
-  "fact_check": "..."
+  "fact_check_summary": ["...", "..."]
 }
 
-- cleaned_text: the neutral rewritten text
-- summary_of_changes: Bullet points describing what types of bias or loaded language were removed. Be specific about what you changed.
-- fact_check: A summary of a fact check for the article. Any false or disputed facts should be listed here. Otherwise, the output should indicate that there were no factual errors detected.
-
-Do NOT add any other text, introductions, or commentary.
-          `.trim(),
+- fact_check_summary should list factual issues, uncertainties, or explicitly state that no obvious factual errors were detected.
+`.trim(),
         },
         {
           role: "user",
@@ -108,7 +110,11 @@ Do NOT add any other text, introductions, or commentary.
       parsed = JSON.parse(rawOutput);
     } catch {
       // fallback: wrap the text if model didn't produce perfect JSON
-      parsed = { cleaned_text: rawOutput, summary_of_changes: [] };
+      parsed = {
+	  cleaned_text: rawOutput,
+	  summary_of_changes: [],
+	  fact_check_summary: ["Fact-check could not be reliably generated."]
+      };
     }
 
     res.status(200).json(parsed);
