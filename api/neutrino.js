@@ -7,28 +7,22 @@ const client = new OpenAI({
 });
 
 export default async function handler(req, res) {
-  // Allow requests from your GitHub Pages site
   res.setHeader("Access-Control-Allow-Origin", "https://bshanahan.github.io");
   res.setHeader("Access-Control-Allow-Methods", "GET,POST,OPTIONS");
   res.setHeader("Access-Control-Allow-Headers", "Content-Type");
 
-  // Handle preflight OPTIONS request
   if (req.method === "OPTIONS") {
     return res.status(200).end();
   }
 
   try {
     const targetUrl = req.query.url;
-
     if (!targetUrl) {
       return res.status(400).json({ error: "Missing ?url parameter" });
     }
 
-    // Fetch page
     const response = await fetch(targetUrl, {
-      headers: {
-        "User-Agent": "NeutrinoBot/1.0",
-      },
+      headers: { "User-Agent": "NeutrinoBot/1.0" },
     });
 
     if (!response.ok) {
@@ -37,42 +31,36 @@ export default async function handler(req, res) {
 
     const html = await response.text();
 
-    // Parse & clean HTML
     const $ = cheerio.load(html);
     $("script, style, nav, footer, header, iframe, noscript").remove();
 
-    let text = $("body")
-      .text()
-      .replace(/\s+/g, " ")
-      .trim();
+    let text = $("body").text().replace(/\s+/g, " ").trim();
 
-    // Hard limit to stay under token cap
     const MAX_CHARS = 12000;
     if (text.length > MAX_CHARS) {
       text = text.slice(0, MAX_CHARS);
     }
 
-    const model = req.query.model || "openai/gpt-4o-mini"; // default
-      
-    // Call model with updated prompt including explanation
+    const model = req.query.model || "openai/gpt-4o-mini";
+
     const completion = await client.chat.completions.create({
-      model: model,
+      model,
       messages: [
         {
           role: "system",
-          content: `You are a neutral editor and fact-checking assistant.
+          content: `
+You are a neutral editor and fact-checking assistant.
 
 Tasks:
 1. Rewrite the input text to remove bias, loaded language, and emotional framing.
-2. Preserve factual content and original meaning.
-3. Do not add new facts.
-4. Provide a brief explanation of the changes made.
-5. Provide a high-level fact-check summary based on widely accepted public knowledge.
+2. Preserve factual content and original meaning. Do not add new facts.
+3. Extract factual claims that are objectively checkable.
+4. Fact-check ONLY those extracted factual claims using widely accepted public knowledge.
 
 Rules:
-- Do NOT browse the web.
+- Opinions, value judgments, predictions, or rhetoric are NOT factual claims.
 - If a claim cannot be verified, say so explicitly.
-- Do NOT speculate.
+- Do NOT speculate or infer causation.
 - Output MUST be valid JSON.
 - Do NOT wrap output in markdown or code blocks.
 
@@ -80,11 +68,15 @@ Output format:
 {
   "cleaned_text": "...",
   "summary_of_changes": ["...", "..."],
+  "extracted_claims": ["...", "..."],
   "fact_check_summary": ["...", "..."]
 }
 
-- fact_check_summary should list factual issues, uncertainties, or explicitly state that no obvious factual errors were detected.
-`.trim(),
+Notes:
+- extracted_claims should list only factual, checkable statements.
+- fact_check_summary should correspond to the extracted claims.
+- If no factual claims are present, say so explicitly.
+          `.trim(),
         },
         {
           role: "user",
@@ -92,30 +84,35 @@ Output format:
         },
       ],
     });
-      
+
     let rawOutput = completion.choices[0].message.content.trim();
 
-    // Remove Markdown code fences if present (Gemini)
+    // Remove markdown code fences (Gemini safety)
     if (rawOutput.startsWith("```")) {
-	rawOutput = rawOutput
-	    .replace(/^```(?:json)?/i, "")
-	    .replace(/```$/, "")
-	    .trim();
+      rawOutput = rawOutput
+        .replace(/^```(?:json)?/i, "")
+        .replace(/```$/, "")
+        .trim();
     }
-    // const rawOutput = completion.choices[0].message.content;
 
-    // Attempt to parse JSON
     let parsed;
     try {
       parsed = JSON.parse(rawOutput);
     } catch {
-      // fallback: wrap the text if model didn't produce perfect JSON
       parsed = {
-	  cleaned_text: rawOutput,
-	  summary_of_changes: [],
-	  fact_check_summary: ["Fact-check could not be reliably generated."]
+        cleaned_text: rawOutput,
+        summary_of_changes: [],
+        extracted_claims: [],
+        fact_check_summary: [
+          "Fact-check could not be reliably generated due to malformed model output.",
+        ],
       };
     }
+
+    // Ensure all fields exist (defensive programming)
+    parsed.summary_of_changes ||= [];
+    parsed.extracted_claims ||= [];
+    parsed.fact_check_summary ||= [];
 
     res.status(200).json(parsed);
   } catch (error) {
