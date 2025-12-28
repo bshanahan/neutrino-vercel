@@ -64,14 +64,22 @@ export default async function handler(req, res) {
 Rewrite the following text to remove bias, loaded language, and emotional framing.
 Preserve factual content and original meaning. Do not add new facts.
 
+Provide a high-level fact-check summary based on widely accepted public knowledge.
+
+Rules:
+- If a claim cannot be verified, say so explicitly.
+- Do NOT speculate.
+
 Return ONLY valid JSON with two fields:
 {
   "cleaned_text": "...",
-  "summary_of_changes": ["...", "..."]
+  "summary_of_changes": ["...", "..."],
+  "fact_check": "..."
 }
 
 - cleaned_text: the neutral rewritten text
 - summary_of_changes: Bullet points describing what types of bias or loaded language were removed. Be specific about what you changed.
+- fact_check: A summary of a fact check for the article. Any false or disputed facts should be listed here. Otherwise, the output should indicate that there were no factual errors detected.
 
 Do NOT add any other text, introductions, or commentary.
           `.trim(),
