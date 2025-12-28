@@ -88,40 +88,46 @@ Notes:
       ],
     });
 
-    let rawOutput = completion.choices[0].message.content.trim();
+      let rawOutput = completion.choices[0].message.content.trim();
 
-    // Remove markdown code fences (Gemini safety)
-    if (rawOutput.startsWith("```")) {
-      rawOutput = rawOutput
-        .replace(/^```(?:json)?/i, "")
-        .replace(/```$/, "")
-        .trim();
-    }
+      // Remove markdown code fences (Gemini / Claude safety)
+      if (rawOutput.startsWith("```")) {
+	  rawOutput = rawOutput
+	      .replace(/^```(?:json)?/i, "")
+	      .replace(/```$/, "")
+	      .trim();
+      }
 
+      let parsed;
 
-    // Attempt to repair unescaped quotes inside JSON strings (Claude quirk)
-      rawOutput = rawOutput.replace(/"([^"]*?)"([^"]*?)"/g, (match) => {
-	  return match.replace(/"/g, '\\"');
-      });
+      // 1️⃣ First attempt: parse as-is
+      try {
+	  parsed = JSON.parse(rawOutput);
+      } catch (firstError) {
+	  // 2️⃣ Second attempt: Claude-specific quote repair
+	  try {
+	      const repaired = rawOutput.replace(
+		  /:\s*"([^"]*?)"/gs,
+		  (match) => match.replace(/"/g, '\\"').replace(/\\"$/, '"')
+	      );
+	      parsed = JSON.parse(repaired);
+	  } catch (secondError) {
+	      // 3️⃣ Final fallback (never break UI)
+	      parsed = {
+		  cleaned_text: rawOutput,
+		  summary_of_changes: [],
+		  extracted_claims: [],
+		  fact_check_summary: [
+		      "Fact-check could not be reliably generated due to malformed model output."
+		  ],
+	      };
+	  }
+      }
 
-    let parsed;
-    try {
-      parsed = JSON.parse(rawOutput);
-    } catch {
-      parsed = {
-        cleaned_text: rawOutput,
-        summary_of_changes: [],
-        extracted_claims: [],
-        fact_check_summary: [
-          "Fact-check could not be reliably generated due to malformed model output.",
-        ],
-      };
-    }
-
-    // Ensure all fields exist (defensive programming)
-    parsed.summary_of_changes ||= [];
-    parsed.extracted_claims ||= [];
-    parsed.fact_check_summary ||= [];
+      // Defensive defaults
+      parsed.summary_of_changes ||= [];
+      parsed.extracted_claims ||= [];
+      parsed.fact_check_summary ||= [];
 
     res.status(200).json(parsed);
   } catch (error) {
