@@ -41,15 +41,6 @@ export default async function handler(req, res) {
       text = text.slice(0, MAX_CHARS);
     }
 
-    // Extract title (best-effort)
-    let title =
-	$("meta[property='og:title']").attr("content") ||
-	$("meta[name='twitter:title']").attr("content") ||
-	$("title").first().text() ||
-	"";
-
-    title = title.replace(/\s+/g, " ").trim();
-
     const model = req.query.model || "openai/gpt-4o-mini";
 
     const completion = await client.chat.completions.create({
@@ -76,7 +67,6 @@ Rules:
 
 Output format (JSON):
 {
-  "title": "...",
   "cleaned_text": "...",
   "summary_of_changes": ["...", "..."],
   "extracted_claims": ["...", "..."],
@@ -88,14 +78,13 @@ Notes:
 - fact_check_summary should correspond to the extracted claims.
 - If no factual claims are present, say so explicitly.
 - Do not downgrade confidence merely because the input text does not provide sources.
-- The title should be rewritten only if it contains bias or loaded language.
-- If no title is provided, return an empty string.
+
           `.trim(),
         },
-	{
-	    role: "user",
-	    content: `Title: ${title || "(No title found)"}\n\nArticle:\n${text}`,
-	},
+        {
+          role: "user",
+          content: text,
+        },
       ],
     });
 
@@ -125,7 +114,6 @@ Notes:
 	  } catch (secondError) {
 	      // 3️⃣ Final fallback (never break UI)
 	      parsed = {
-		  title: title || "",
 		  cleaned_text: rawOutput,
 		  summary_of_changes: [],
 		  extracted_claims: [],
@@ -137,7 +125,6 @@ Notes:
       }
 
       // Defensive defaults
-      parsed.title ||= title || "";
       parsed.summary_of_changes ||= [];
       parsed.extracted_claims ||= [];
       parsed.fact_check_summary ||= [];
