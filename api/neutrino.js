@@ -64,7 +64,7 @@ Rules:
 - Output MUST be valid JSON.
 - Do NOT wrap output in markdown or code blocks.
 - Well-established, widely reported historical events (e.g. major attacks, elections, wars) should be treated as verifiable unless there is credible dispute.
-
+- Be very explicit as to what changes you made, and why in the "summary_of_changes"
 Output format (JSON):
 {
   "cleaned_text": "...",
